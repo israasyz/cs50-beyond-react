@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.0.0-alpha-568dc3532/umd/react.development.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.0.0-alpha-568dc3532/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+    <title>Flashcards</title>
+    <style>
+        table, td, th {
+            border: 1px solid black;
+        }
+
+        table {
+            margin: auto;
+            text-align: center;
+            border-collapse: collapse;
+        }
+
+        td, th {
+            padding: 10px;
+        }
+
+        .card {
+            border: 4px solid black; 
+            background-color: whitesmoke;
+            width: 80%;
+            padding: 50px;
+            margin: auto;
+        }
+
+        body {
+            text-align: center;
+        }
+
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="text/babel">
+        class CardEditor extends React.Component {
+
+            constructor(props) {
+                super(props);
+                this.state = {
+                    front: "",
+                    back: ""
+                }
+            }
+
+            render() {
+
+                const rows = this.props.cards.map((card, i) => {
+                    return (
+                        <tr key={i}>
+                            <td>{card.front}</td>
+                            <td>{card.back}</td> 
+                            <td><button data-index={i} onClick={this.deleteCard}>Delete</button></td>    
+                        </tr>
+                    );
+                });
+
+                return (
+                    <div>
+                        <h2>Card Editor</h2>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Front</th>
+                                    <th>Back</th>
+                                    <th>Delete</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {rows}
+                            </tbody>
+                        </table>
+                        <br/>
+                        <input onChange={this.handleChange} name="front" placeholder="Front of Card" value={this.state.front} />
+                        <input onChange={this.handleChange} name="back" placeholder="Back of Card" value={this.state.back} />
+                        <button onClick={this.addCard} >Add Card</button>
+                        <hr/>
+                        <button onClick={this.props.switchMode}>Go to Viewer</button>
+                    </div>
+                );
+            }
+
+            handleChange = (event) => {
+                this.setState({
+                    [event.target.name]: event.target.value
+                });
+            }
+
+            addCard = () => {
+                this.props.addCard(this.state.front, this.state.back);
+                this.setState({
+                    front: "",
+                    back: ""
+                });
+            }
+
+            deleteCard = (event) => {
+                this.props.deleteCard(event.target.dataset.index);
+            }
+        }
+
+        class CardViewer extends React.Component {
+
+            constructor(props) {
+                super(props);
+                this.state = {
+                    front: true,
+                    index: 0
+                };
+            }
+
+            render() {
+                if(this.props.cards.length > 0) {
+                                        
+                    return (
+                        <div>
+                            <h2>Card Viewer</h2>
+                            <div className="card" onClick={this.switchCard} >
+                                <p>{this.state.front?this.props.cards[this.state.index].front:this.props.cards[this.state.index].back}</p>
+                            </div>
+                            <br/>
+                            <button data-card="new" onClick={this.newCard}>New Card</button>
+                            <button data-card="shuffle" onClick={this.newCard}>Shuffle Card</button>
+                            <hr/>
+                            <button onClick={this.props.switchMode}>Go to Editor</button>
+                        </div>
+                    );
+
+                } else {
+                    return (
+                        <div>
+                            <h2>Card Viewer</h2>
+                            <div>
+                                No cards added yet!
+                            </div>
+                            <hr/>
+                            <button onClick={this.props.switchMode}>Go to Editor</button>
+                        </div>
+                    );
+                }
+            }
+
+            switchCard = () => {
+                this.setState(state => ({
+                    front: !state.front
+                }));
+            }
+            
+            newCard = (event) => {
+                if(event.target.dataset.card === "new"){
+                    this.setState(state => ({
+                        front: true, 
+                        index: (state.index + 1) % this.props.cards.length
+                    }));
+                } else {
+                    this.setState(state => ({
+                        front: true, 
+                        // Math.floor(Math.random() * (max - min + 1)) + min; --> max=this.props.cards.length - 1, min=0
+                        index: Math.floor(Math.random() * (this.props.cards.length))
+                    }));                  
+                }
+            }
+        }
+
+        class App extends React.Component {
+
+            constructor(props) {
+                super(props);
+                this.state = {
+                    editor: true,
+                    // Lifting state up
+                    cards: [{front:"test 1 front", back:"test 1 back"}, {front:"test 2 front", back: "test 2 back"}]
+                };
+            }
+
+            render() {
+                if(this.state.editor) {
+                    return (
+                        <CardEditor 
+                            cards={this.state.cards}
+                            switchMode={this.switchMode}
+                            addCard={this.addCard}
+                            deleteCard={this.deleteCard}
+                        />
+                    );
+                } else {
+                    return (
+                        <CardViewer
+                            cards={this.state.cards}
+                            switchMode={this.switchMode}
+                        />
+                    );
+                }
+                
+            }
+
+            switchMode = () => {
+                this.setState(state => ({
+                    editor: !state.editor
+                }));
+            }
+
+            addCard = (front, back) => {
+                this.setState(state => ({
+                    cards: [...state.cards, {front, back}]
+                }));
+            } 
+
+            deleteCard = (index) => {
+                this.setState(state => {
+                    const cards = state.cards;
+                    cards.splice(index, 1);
+                    return { cards };
+                });
+            }
+        }
+
+        ReactDOM.render(<App />, document.querySelector("#app"));
+
+    </script>
+  </body>
+</html>
