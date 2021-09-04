@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.0.0-alpha-568dc3532/umd/react.development.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.0.0-alpha-568dc3532/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/6.26.0/babel.min.js"></script>
+    <title>Connect 4</title>
+    <style>
+        h1, h2 {
+            margin-top: 10px;
+            margin-bottom: 5px;
+        }
+        table, td, th {
+            border: 1px solid black;
+        }
+
+        table {
+            margin: 10px auto;
+            text-align: center;
+            border-collapse: collapse;
+            cursor: pointer;
+        }
+
+        td, th {
+            font-size: 55px;
+            padding: 1px;
+            width: 55px;
+        }
+
+        body {
+            text-align: center;
+        }
+
+        button {
+            margin: 10px;
+        }
+
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="text/babel">
+        class App extends React.Component {
+
+            constructor(props) {
+                super(props);
+                this.state = {
+                    turn: 1, // Red is 1, Black is 2
+                    cols: [[0,0,0,0,0,0,0],
+                           [0,0,0,0,0,0,0], 
+                           [0,0,0,0,0,0,0],
+                           [0,0,0,0,0,0,0],
+                           [0,0,0,0,0,0,0],
+                           [0,0,0,0,0,0,0],
+                           [0,0,0,0,0,0,0]],
+                    winner: ""
+                };
+            }
+
+            render() {
+                const rows  = this.state.cols.map((rows, i) => {
+                    return (
+                        <tr key={i}>
+                            {this.state.cols.map(cols => cols[i]).map((el, j) => {
+                            return (
+                                // <td 
+                                // onChange={this.handleChange} 
+                                // onClick={this.dropCircle} 
+                                // onMouseOver={this.mouseHover} 
+                                // onMouseLeave={this.mouseOut}
+                                // key={j} data-row={6-i} data-col={j}>
+                                //     {this.state.cols[j][6-i]}
+                                // </td>
+                                <td 
+                                onChange={this.handleChange} 
+                                onClick={this.dropCircle} 
+                                onMouseOver={this.mouseHover} 
+                                onMouseLeave={this.mouseOut}
+                                style={{color:this.state.cols[j][6-i]===0?"white":this.state.cols[j][6-i]===1?"red":"black"}}
+                                key={j} data-row={6-i} data-col={j}>
+                                    &#9679;
+                                </td>
+                                )})}
+                        </tr>
+                    )});
+
+                const turnOrWinner = this.state.winner?
+                                        <h1>Winner: {this.state.winner}</h1>:
+                                        <h2>Turn: {(this.state.turn === 1)?"Red":"Black"}</h2>;
+                return (
+                    <div>
+                        <h2>Connect 4</h2>
+                        {turnOrWinner}
+                        <button onClick={this.restartGame}>Restart</button>
+                        <table>
+                            <tbody>
+                                {rows}
+                            </tbody>
+                        </table>
+                    </div>
+                );
+            }
+            // handleChange = (event) => {
+            //     this.setState(state => {
+            //         let cols = [...state.cols];
+            //         cols[event.target.dataset.col][event.target.dataset.row] = event.target.textContent;
+            //         return { cols }
+            //     });
+            // }
+
+            mouseHover = (event) => {
+                let col = event.target.dataset.col;
+                document.querySelectorAll("[data-col='"+col+"']").forEach(el => {
+                    el.style.background = "#8a8a8a"
+                });
+            }
+
+            mouseOut = (event) => {
+                let col = event.target.dataset.col;
+                document.querySelectorAll("[data-col='"+col+"']").forEach(el => {
+                    el.style.background = ""
+                });
+            }
+
+            dropCircle = (event) => {
+                if(this.state.winner) return;
+                var end; // index to the last position filled by circles in a column (length of column)
+                this.setState(state => {
+                    let cols = [...state.cols];
+                    for(end=0; end<7; end++){
+                        if(cols[event.target.dataset.col][end] === 0){
+                            cols[event.target.dataset.col][end] = state.turn;
+                            break;
+                        }
+                    }
+                    if(end < 7){
+                        return { turn: (state.turn === 1)? 2 : 1, 
+                            cols }
+                    }
+                }, () => this.connect4(this.state.cols, event.target.dataset.col, end));
+                
+            }
+
+            fourMatch = (one, two, three, four) => {
+                let winner = "";
+                if(one === two && one === three && one === four){
+                    if(one === 1) {
+                        winner = "Red";
+                        this.setState({
+                            winner: "Red"
+                        })
+                    } else if(one === 2) {
+                        winner = "Black";
+                        this.setState({
+                            winner: "Black"
+                        })
+                    }
+                }
+                return winner
+            }
+
+            connect4 = (array, column, len) => {
+                if(this.state.winner) return;
+                const col = parseInt(column);
+
+                // Check for vertical winning
+                if(len >= 3) {
+                    this.fourMatch(array[col][len], array[col][len-1], array[col][len-2], array[col][len-3]);
+                }
+
+                // Check for horizontal winning
+                if(col <= 3) {
+                    for(var i = 0; i <= col; i++) {
+                        if(this.fourMatch(array[i][len], array[i+1][len], array[i+2][len], array[i+3][len])) break;
+                    }
+                } else {
+                    for(i = 6; i >= col; i--) {
+                        if(this.fourMatch(array[i][len], array[i-1][len], array[i-2][len], array[i-3][len])) break;
+                    }
+                }
+
+                // Check for right diagonal winning (up right)
+                let difference = col-len;
+                if(difference >= 0 && difference < 4){
+                    for(var i = 0; i <= 3-difference; i++) {
+                        if(this.fourMatch(array[difference+i][i], array[difference+i+1][i+1], array[difference+i+2][i+2], array[difference+i+3][i+3])) 
+                            break;
+                    }
+                } else if(difference < 0 && difference > -4) {
+                    difference = len-col;
+                    for(var i = 0; i <= 3-difference; i++) {
+                        if(this.fourMatch(array[i][difference+i], array[i+1][difference+i+1], array[i+2][difference+i+2], array[i+3][difference+i+3])) 
+                            break;
+                    }
+                }
+
+                // Check for left diagonal winning (up left)
+                let sum = col+len;
+                if(sum >= 3 && sum <= 6) {
+                    for(var i = 0; i <= sum-3; i++) {
+                        if(this.fourMatch(array[i][sum-i], array[i+1][sum-i-1], array[i+2][sum-i-2], array[i+3][sum-i-3])) 
+                            break;
+                    }
+                } else if(sum > 6 && sum < 10) {
+                    for(var i = 0; i < 10-sum; i++) {
+                        if(this.fourMatch(array[sum-6+i][6-i], array[sum-5+i][5-i], array[sum-4+i][4-i], array[sum-3+i][3-i])) 
+                            break;
+                    }
+                }
+
+            }
+
+            restartGame = () => {
+                this.setState({
+                    turn: 1, // Red is 1, Black is 2
+                    cols: [[0,0,0,0,0,0,0],
+                           [0,0,0,0,0,0,0], 
+                           [0,0,0,0,0,0,0],
+                           [0,0,0,0,0,0,0],
+                           [0,0,0,0,0,0,0],
+                           [0,0,0,0,0,0,0],
+                           [0,0,0,0,0,0,0]],
+                    winner: ""
+                })
+            }
+        }
+        ReactDOM.render(<App />, document.querySelector("#app"));
+
+    </script>
+  </body>
+</html>
